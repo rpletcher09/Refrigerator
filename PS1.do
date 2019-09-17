@@ -12,7 +12,8 @@ cap log close
 set logtype text
 
 /* Task 5 completed here */
-cd C:\Users\Ryan\Desktop\Datman
+mkdir Datman
+cd ~/Datman
 
 log using PS1.txt, replace
 
