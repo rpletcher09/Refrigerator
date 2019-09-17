@@ -12,8 +12,8 @@ cap log close
 set logtype text
 
 /* Task 5 completed here */
-mkdir Datman
-cd ~\Datman
+cap mkdir ~\DataManagementRP
+cd ~\DataManagementRP
 
 log using PS1.txt, replace
 
