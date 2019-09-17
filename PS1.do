@@ -13,7 +13,7 @@ set logtype text
 
 /* Task 5 completed here */
 mkdir Datman
-cd ~/Datman
+cd ~\Datman
 
 log using PS1.txt, replace
 
