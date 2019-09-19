@@ -45,6 +45,12 @@ keep crn time_of_day collision_type fatal_count injury_count person_count latitu
 *Yikes, there was probably a better way to do that.
 outsheet using crashPHLtrim.csv, replace comma nolabel
 
+*Still looking at the data...
+ta injury_count
+*Looks like this variable is heavily positively skewed.
+ta fatal_count
+*This variable is also heavily positively skewed!
+
 /* Task 5: cd to working dir, avoid using paths */
 *Completed above!
 
