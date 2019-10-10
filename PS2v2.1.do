@@ -3,6 +3,31 @@
 
 *First, the usual: code from PS1
 
+/* comments: plot
+. use shootTrim,clear
+
+. collapse (sum) event, by(year month)
+variable event not found
+r(111);
+
+. gen event=1
+
+. collapse (sum) event, by(year month)
+
+. edit
+
+. gen time=_n
+
+. line event time
+
+
+
+
+
+/*
+
+
+
 clear         
 set matsize 800 
 version 16
