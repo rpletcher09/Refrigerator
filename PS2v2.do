@@ -2,7 +2,8 @@
 /* The purpose of this code is to manipulate and merge two datasets on a common variable */
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!//
-//CODE THAT FOLLOWS IS FROM PS1//
+//CODE THAT FOLLOWS IS FROM PS1// 
+//good , fine to have old code and mark it as such
 
 /* Load data from online */
 
@@ -72,4 +73,12 @@ outsheet using shootTrim.csv, replace
 *Okay, pizza time.
 
 merge m:1 year month unit2 using complaintsTrim.csv
+/* may want to investigate this: im getting this error
+. merge m:1 year month unit2 using complaintsTrim.csv
+file complaintsTrim.csv from more recent version of Stata; type update query to see if an update to
+    Stata is available and look at http://www.stata.com/ to see if a new version of Stata is
+    available.
+--maybe just my statat i have version 15, may have another look in classroom tonight; but we typically merge with dta not csv, anyway just make sure this runs on your machine fine and lets discuss more;
+also at the beginning may add brief one pargaprh or so description of your research idea, hypotheses, and model/variables to walk
+us thrpough your logic and thinking here */
 
