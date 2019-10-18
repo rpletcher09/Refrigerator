@@ -3,6 +3,8 @@
 
 *First, the usual: code from PS1
 
+//as far as i can tell there 4, not five datasets so need one more
+
 clear         
 set matsize 800 
 version 16
@@ -14,7 +16,7 @@ cap mkdir ~\Desktop\DataManagementRP
 cd ~\Desktop\DataManagementRP
 
 log using PS3.txt, replace
-
+//give fuller descr of what you are doing: specific hypotheses, model, vars
 *We're combining the crimes/complaints dataset with three new datasets
 *The first new dataset will provide dates and game outcomes (win/loss) for the Philadelphia Eagles
 
@@ -22,6 +24,8 @@ log using PS3.txt, replace
 *drop if hometeam!="PHI" & awayteam!="PHI"
 *keep Date hometeam awayteam home_wp_pre away_wp_pre
 
+//where exactly the data come from? give exact url and full exact data descr so i can easily find it myself online
+//same for other datasets
 use https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/NFL.dta
 generate date = date(Date, "YMD")
 drop Date
@@ -77,6 +81,7 @@ label values home home
 save philliesWins, replace
 clear
 
+//this is awesome to use these data!
 *The third dataset is daily weather data for the county of Philadelphia from the CDC.
 insheet using https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/weather.csv
 generate date = date(monthdayyearcode, "MDY")
@@ -96,6 +101,10 @@ clear
 clear
 *Department of redundancy department
 unzipfile https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/crimeShortMerge.zip
+//this breaks on my PC, does it work on yours? but i can do
+//copy https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/crimeShortMerge.zip a.zip
+//unzipfile  a.zip
+
 use crimeShortMerge
 gen day=day(date)
 order year month day unit2
@@ -122,6 +131,11 @@ use crimeShortMerge
 drop _merge
 merge m:1 year month day using eaglesWins
 *Neat, we matched 6,000 observations (we didn't expect to get too many, considering the relatively smaller number of football games compared to crimes.)
+//right, right, but do check! eg
+ ta year month  if _merge ==2
+ ta year month  if _merge ==1 //okay seems no overlap
+ //and do check for others
+
 *Save the new merged data
 save crimeEaglesMerge
 drop _merge
