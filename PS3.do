@@ -3,6 +3,14 @@
 //otherwhise on second run it breaks
 //still, the problem is that the ps asked for 5 merges and you have 4 AND i dont see reshape
 
+//Thank you! I'm glad that you feel the flow is logical! Also, thank you for pointing out the ,replace issue!
+//As far as the merges are concerned: I completely misinterpreted the instruction asking for 5 merges as it asking for 5 -datasets-,
+//and I've been reading it that way since the day we were given the assignment. The only reason that I'm pointing this out is because a)
+//I can't believe I did that and feel like a dummy for not realizing it when you made your first comment about it and b) I don't want you
+//to think that I read your comment and went "oh well" and didn't do it. Instead, I read it and went "hey, I already did that" and didn't
+//do it. So anyway, lesson learned: reading is helpful, and so is double-checking, and I'm sorry that I did that. I would like to 
+//point out, however, that there is a reshape in here, which starts at line 206 (actual reshape call on 212)! 
+
 /* PS3 Code: More Merge */
 /* The purpose of this code is to merge a total of 5 datasets together to form a dataset which can be used to generate some neat data
 The reason for combining the following datasets is to identify the effect, if any, of Philadelphia sports team losses and wins on reports
