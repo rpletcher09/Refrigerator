@@ -1,7 +1,13 @@
+//i like your flow--clean, well commented, great job! 
+//one thing that breaks it: when you save aloways give ,replace
+//otherwhise on second run it breaks
+//still, the problem is that the ps asked for 5 merges and you have 4 AND i dont see reshape
+
 /* PS3 Code: More Merge */
 /* The purpose of this code is to merge a total of 5 datasets together to form a dataset which can be used to generate some neat data
 The reason for combining the following datasets is to identify the effect, if any, of Philadelphia sports team losses and wins on reports
 of crime in the City of Philadelphia. The purpose of including complaints against police and weather is to use these datasets for covariates*/
+//could add a bit more like in shibin's repo linked from my todays email
 
 *First, the usual: code from PS1
 
@@ -25,11 +31,11 @@ The dataset has 356,768 rows and 100 columns. Each play is broken down into grea
 on: game situation, players involved, results, and advanced metrics such as expected point and win probability
 values. Detailed information about the dataset can be found at the following web page, along with
 more NFL data: https://github.com/ryurko/nflscrapR-data. */
-
+//good
 /*The following two lines were done to the data prior to uploading it to git, in order to make it smaller. Online file hosting didn't agree with Stata */
 *drop if hometeam!="PHI" & awayteam!="PHI"
 *keep Date hometeam awayteam home_wp_pre away_wp_pre
-
+//very good!
 use https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/NFL.dta
 generate date = date(Date, "YMD")
 drop Date
