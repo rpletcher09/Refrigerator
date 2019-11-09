@@ -1,3 +1,10 @@
+/* try to produce more code, again ps4 asked for 400 lines of code; you have date, plot variables over time! line plots
+
+when you say:
+*I manipulated this dataset prior to uploading it to git
+say how you manipulated it!
+/*
+
 /* PS4 Code: Draft of final project */
 /* The purpose of this code is to merge datasets collected from the internet together to form a dataset which can be used to generate meaningful analyses and statistical visualizations.
 The reason for combining the following datasets is to identify the effect, if any, of Philadelphia sports team losses and wins on reports of crime in the City of Philadelphia. The purpose of including complaints against police and weather is to use these datasets for covariates*/
