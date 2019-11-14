@@ -1,3 +1,6 @@
+/*I still plan to include line plots for things over time!
+*/
+
 /*Plot variables over time! line plots
 when you say:
 *I manipulated this dataset prior to uploading it to git
@@ -14,8 +17,8 @@ version 16
 set more off
 cap log close 
 set logtype text
-cap mkdir ~\Desktop\Datman
-cd ~\Desktop\Datman
+cap mkdir ~\Desktop\DataManagementRP
+cd ~\Desktop\DataManagementRP
 log using PS5.txt, replace
 
 *Macros
@@ -265,3 +268,49 @@ graph export gameOutcomeCrimeFreq.pdf, as(pdf) name("Graph")
 **********
 *END CODE FROM PS4
 **********
+
+*So that's all cool and all, but I'm not sure the best/most necessary ways to incorporate loops into this data...
+*But here we go anyway
+use PHIsports, clear
+*Supposing we realized a new angle for the data, that sometimes the games Philly plays in are AWAY, we want a super nuianced portrait of the city...so let's get rid of cases where the home team wasn't Philly for football and baseball.
+drop if home!=21 & homeTeam!=23
+*Cool, now let's say we want to make new datasets for each opposing team.
+drop home homeTeam
+
+codebook vis
+levelsof vis, loc(v)
+di "`v'"
+
+foreach lev in `v'{
+  preserve
+  keep if vis==`lev'
+save BBvisitor`lev',  replace
+  restore
+}
+ls BB*
+*That's cool but a little unhelpful because the labels didn't come across in the macro. What's the best way around that?
+
+*Let's do the same thing for Football. We should be able to merge the datasets together (could probably do this more comprehensively BEFORE running these loops and then just run one instead of two, but that's for next iteration)
+
+codebook awayTeam
+levelsof awayTeam, loc(a)
+di "`a'"
+
+foreach lev in `a'{
+  preserve
+  keep if awayTeam==`lev'
+save FBvisitor`lev',  replace
+  restore
+}
+ls FB*
+
+*Create a new variable 
+gen nightAssault=0
+if ccrime==1 & hour_>17 {
+replace nightAssault=1
+}
+else if ccrime==1 & hour_<18 {
+replace nightAssault=0
+}
+ta nightAssault
+*This didn't work. That's okay, kind of forced this bit of code. It doesn't need to be in here. I will replace it with something more logical in the next PS, as I intend to bring in more data so I'll have a better/more reasonable place for a branch in my code.
