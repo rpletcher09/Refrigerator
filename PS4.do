@@ -3,7 +3,7 @@
 when you say:
 *I manipulated this dataset prior to uploading it to git
 say how you manipulated it!
-/*
+*/
 
 /* PS4 Code: Draft of final project */
 /* The purpose of this code is to merge datasets collected from the internet together to form a dataset which can be used to generate meaningful analyses and statistical visualizations.

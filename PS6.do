@@ -20,13 +20,14 @@ log using PS6.txt, replace
 global y gen year=year(date)
 global m gen month=month(date)
 global d gen day=day(date)
+global clean keep year month day City phiWin chiWin
 
 **********
 *CODE THAT FOLLOWS IS MODIFIED FROM PS3
 **********
 
-*We're combining the crimes/complaints dataset with three new datasets
-*The first new dataset will provide dates and game outcomes (win/loss) for the Philadelphia Eagles
+*We're combining the crimes/complaints dataset with new datasets
+*The first new dataset will provide dates and game outcomes (win/loss) for Philadelphia and Chicago football teams
 *This data comes from https://www.kaggle.com/maxhorowitz/nflplaybyplay2009to2016
 /*Description from the website hosting the data: The dataset made available on Kaggle contains all the regular season plays from the 2009-2016 NFL seasons. The dataset has 356,768 rows and 100 columns. Each play is broken down into great detail containing information on: game situation, players involved, results, and advanced metrics such as expected point and win probability values. Detailed information about the dataset can be found at the following web page, along with more NFL data: https://github.com/ryurko/nflscrapR-data. */
 
@@ -63,7 +64,6 @@ $m
 $d
 destring home_wp_pre, replace
 recode home_wp_pre (.5/1=1 win) (0/.5=0 loss), gen(homeWin)
-drop Date home_wp_pre away_wp_pre
 encode hometeam, g(homeTeam)
 *CHI = 5, PHI = 22
 encode awayteam, g(awayTeam)
@@ -71,13 +71,19 @@ encode awayteam, g(awayTeam)
 keep if homeTeam==5 | homeTeam==22
 gen phiWin=0
 gen chiWin=0
+gen City=0
+replace City=1 if homeTeam==5
 replace phiWin=1 if homeTeam==22 & homeWin==1
 replace chiWin=1 if homeTeam==5 & homeWin==1
+collapse homeTeam awayTeam phiWin chiWin, by(year month day City)
+lab values homeTeam homeTeam
+lab values awayTeam awayTeam
 la var phiWin "Binary indicating whether Philadelphia won while playing in Philadelphia"
 la var chiWin "Binary indicating whether Chicago won while playing in Chicago"
+$clean
 save NFLwins, replace
-
-*The second new dataset will supplement the first, providing dates and game outcomes (win/loss) for the Philadelphia Phillies
+	
+*The second new dataset will supplement the first, providing dates and game outcomes (win/loss) for Philadelphia and Chicago baseball teams
 *This data comes from https://data.world/dataquest/mlb-game-logs
 /* Description from website hosting the dataset: The game logs contain a record of major league games played from 1871-2018. At a minimum, it provides a listing of the date and score of each game. Where our research is more complete, we include information such as team statistics, winning and losing pitchers, linescores, attendance, starting pitchers, umpires and more. There are 161 fields in each record, described in more detail in the Guide to Retrosheet Game Logs. */
 
@@ -105,18 +111,91 @@ keep if h_name=="PHI" | h_name=="CHN"
 encode v_name, g(vis)
 encode h_name, g(home)
 *CHN = 1, PHI = 2
-drop v_name h_name
 gen phiWin=0
 gen chiWin=0
 replace phiWin=1 if home==2 & v_score<h_score
 replace chiWin=1 if home==1 & v_score<h_score
+gen City=0
+replace City=1 if home==1
 order year month day
+collapse home vis phiWin chiWin, by(year month day City)
+lab values vis vis
+lab values home home
 la var phiWin "Binary indicating whether Philadelphia won while playing in Philadelphia"
 la var chiWin "Binary indicating whether Chicago won while playing in Chicago"
+$clean
 save MLBwins, replace
 
+append using NFLwins
+save MASTERwins, replace
+
+*This dataset will supplement the previous datasets, providing dates and game outcomes (win/loss) for Philadelphia and Chicago hockey teams
+*This data comes from https://www.kaggle.com/martinellis/nhl-game-data/data#game.csv
+/* Description from website hosting the dataset: This is not just the results and player stats of NHL games but also details on individual plays such as shots, goals and stoppages including date & time and x,y coordinates. The dataset is incomplete, there are some games where no plays information is available on NHL.com. It is rare and I do not know the reasons. */
+
+insheet using "https://github.com/rpletcher09/Refrigerator/raw/master/NHL.csv", clear
+generate date = date(date_time, "YMD")
+format date %td
+$y
+$m
+$d
+drop game_id season type venue* date_t*
+order year month day
+rename home_team_id team_id
+*Okay, great. Where's the team ID data?!
+save NHL, replace
+
+insheet using "https://github.com/rpletcher09/Refrigerator/raw/master/NHLkey.csv", clear
+keep team_id shortname abbreviation
+save NHLkey, replace
+
+use NHL, clear
+merge m:1 team_id using NHLkey
+drop if abbreviation!="CHI" & abbreviation!="PHI"
+encode shortname, g(City)
+recode City (1=1)(2=0)
+gen phiWin=0
+gen chiWin=0
+replace phiWin=1 if team_id==4 & away_goals<home_goals
+replace chiWin=1 if team_id==16 & away_goals<home_goals
+$clean
+save NHLwins, replace
+
+use MASTERwins, clear
+append using NHLwins
+save MASTERwins, replace
+
+*This dataset will supplement the previous datasets, providing dates and game outcomes (win/loss) for Philadelphia and Chicago basketball teams
+*This data comes from https://www.kaggle.com/pablote/nba-enhanced-stats
+/* Description from website hosting the dataset: Dataset is based on box score and standing statistics from the NBA. */
+
+insheet using "https://github.com/rpletcher09/Refrigerator/raw/master/NBA.csv", clear
+keep gmdate teamabbr teamloc teamrslt
+generate date = date(gmdate, "YMD")
+format date %td
+$y
+$m
+$d
+drop if teamabbr!="CHI" & teamabbr!="PHI"
+drop if teamloc!="Home"
+gen City=0
+replace City=1 if teamabbr=="CHI"
+gen phiWin=0
+gen chiWin=0
+replace phiWin=1 if teamabbr=="PHI" & teamrslt=="Win"
+replace chiWin=1 if teamabbr=="CHI" & teamrslt=="Win"
+$clean
+save NBAwins, replace
+
+use MASTERwins, clear
+append using NBAwins
+collapse phiWin chiWin, by(year month day City)
+replace phiWin=round(phiWin, 1)
+replace chiWin=round(chiWin, 1)
+save MASTERwins, replace
+
 //this is awesome to use these data!
-*The third dataset is daily weather data for the county of Philadelphia from the CDC.
+*The third dataset is daily weather data for the county of Philadelphia and city of Chicago from the CDC.
 *This data comes from https://wonder.cdc.gov/nasa-nldas.html
 /*Description from website hosting the dataset: The North America Land Data Assimilation System (NLDAS) data available on CDC WONDER are county-level daily average air temperatures and heat index measures spanning the years 1979-2011. Temperature data are available in Fahrenheit or Celsius scales. Reported measures are the average temperature, number of observations and range for the daily maximum and minimum air temperatures, as well as percent coverage for the daily maximum heat index. Data are available by place (combined 48 contiguous states, region, division, state, county), time (year, month, day) and specified maximum and minimum air temperature, and heat index value. */
 
@@ -167,6 +246,10 @@ $y
 $m
 $d
 drop ndate date1*
+rename primarytype crime
+drop if missing(crime)
+gen City = 1
+
 save CHIcrime, replace
 
 *This dataset comes from https://www.opendataphilly.org/dataset/crime-incidents
@@ -194,54 +277,34 @@ save crimePHI, replace
 *END CODE FROM PS2
 **********
 
-encode text_general_code, g(crime)
+rename text_general_code crime
 drop if missing(crime)
+gen City = 0
 
-recode crime (1/2 20 = 1 Assault)(5/6 = 2 Burglary)(13/15 = 4 Homicide)(17 25/26 29/30 = 5 Theft)(27/28 = 3 Robbery)(21/22 24 = 9 Sex_Crime),g(ccrime)
-*THIS NEEDS FIXIN' ^^
-drop text_general_code crime _merge
-save crimeShortMerge, replace
-/*Deprecate this, maybe?
-*Re...shape? It doesn't really need to be done for this dataset, but for the sake of the grade...let's reshape.
-bys year month day unit2: egen crime1mode=mode(ccrime), max
-collapse crime1mode type2mode date, by(year month day unit2)
-label values crime1mode ccrime
-label values type2mode type2
-reshape wide crime1mode type2mode, i(date) j(unit2)
-*So there's a wide dataset with unique dates (that would be [questionably] easier for merging) that has variables for each UNIT containing the most frequent type of crime in that unit on that date and the most frequent complaint made against officers in that unit on that date.
-*Is this useful for the rest of the data analysis and mergery? Not really, so I'm saving it as a side note and returning to earlier (long) data for the rest of the assignment
-save crimeWide*/
-merge m:1 year month day using eaglesWins
-*Neat, we matched 6,000 observations (we didn't expect to get too many, considering the relatively smaller number of football games compared to crimes.)
-ta year month if _merge==1
-ta year month if _merge==2
-/*The only overlap here exists in 2011, for month 12, 4 cases were unique to using only, but 0 cases were unique to master only, telling us that these non-merges from using are justified. In all other cases, the year and month are not congruent between the two datasets, which explains their non-merging. */
-*Save the new merged data
-*DO NOT drop if _merge!=3, football and baseball dates DON'T generally overlap
+append using CHIcrime
+
+encode crime, g(ccrime)
+drop crime arrest latitude longitude
+recode ccrime (1 6 = 100 "Arson")(2/4 45 = 200 "Assault")(7=205 "Battery")(5 40 28/29 30 43 36/38 = 400 "Other")(8/10 = 500 "Burglary")(11 65/66 = 300 "Weapons violation")(12 24 46/47 50 53 58 59 = 900 "Sex crime")(13 64 = 101 "Vandalism/criminal mischief")(14 63 = 102 "Vagrancy/loitering")(15 18/20 = 103 "Deceptive practices")(16/17 40 48/49 51 = 104 "Drunk and disorderly")(21/22 = 105 "Gambling violations")(23 25/27 = 106 "Homicide")(31/32 = 108 "Liquor law violations")(33/34 54/55 60/62 = 201 "Theft")(35 39 42 = 202 "Drug violations")(41 44 = 203 "Domestic offense")(52 56/57 = 204 "Robbery"),g(crime)
+drop ccrime
+label define City 0 "Philadelphia" 1 "Chicago"
+label values City City
+
+save crimeLong, replace
+
+merge m:1 year month day City using MASTERwins
+
+*Neat, we matched 1.6 million observations! What didn't match? Only dates in the master (crime) dataset, which we expected because the date range of the crime datasets far exceed the date range of the sports data.
+
+keep if _merge==3
 drop _merge
-save crimeEaglesMerge, replace
-*Before we merge the next dataset, the variable phiWin needs to be changed, because it exists as the same name in both datasets.
-rename phiWin pEWin
-merge m:1 year month day using philliesWins
-*Wow, we picked up 130,000 observations from the baseball data! Way more than football. More crimes happening in a single day in warmer (baseball) weather than in colder (football) weather, so this isn't too surprising.
-*Save the newly merged merge data
-ta year month if _merge==1
-ta year month if _merge==2
-//A few instances where year and month overlap, but not day//
-*DO NOT drop if _merge!=3, football and baseball dates DON'T generally overlap
-drop _merge
-save crimeSportsMerge, replace
-*So, now that we have incorporated all the sports data, and we know the weather data is comprehensive (ie, weather happened every day), let's make the dataset a little lighter before the final merge.
-*Get rid of observations without any Philly sports outcome data.
-drop if pEWin==. & phiWin==.
-*We dropped 125,000 observations and have 135,000 left!
-*THIS, IN EFFECT, DROPS DATES WHERE THERE ARE NO PHILLY SPORTS, PERFORMING THE FUNCTION OF DROP IF MERGE!=3 FOR THE PAST TWO MERGES
-*For ease of future analyses, let's make a new variable indicating whether Philadelphia won, period.
-rename phiWin pPWin
-gen phiWin = 0
-replace phiWin=1 if pPWin==1|pEWin==1
-save crimeSportsMerge, replace
-*Okay, time for the last dataset.
+
+save crimeSports, replace
+
+*BREAK*
+
+*So, now that we have incorporated all the sports data, it's time for the weather.
+
 merge m:1 year month day using weather
 *We matched 113,000 observations. Seems I might have been wrong about the weather data having EVERY day. Sometimes there are days where there is no weather. Sometimes weather just doesn't happen. Scary.
 ta year month if _merge==1
@@ -320,7 +383,12 @@ graph export gameOutcomeCrimeFreq.pdf, as(pdf) name("Graph")
 use PHIsports, clear
 *Supposing we realized a new angle for the data, that sometimes the games Philly plays in are AWAY, we want a super nuianced portrait of the city...so let's get rid of cases where the home team wasn't Philly for football and baseball.
 drop if home!=21 & homeTeam!=23
+
 *Cool, now let's say we want to make new datasets for each opposing team.
+
+* W E  D O N ' T *
+
+/*
 drop home homeTeam
 
 codebook vis
@@ -360,3 +428,4 @@ replace nightAssault=0
 }
 ta nightAssault
 *This didn't work. That's okay, kind of forced this bit of code. It doesn't need to be in here. I will replace it with something more logical in the next PS, as I intend to bring in more data so I'll have a better/more reasonable place for a branch in my code.
+*/
