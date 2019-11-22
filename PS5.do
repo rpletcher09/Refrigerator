@@ -29,7 +29,7 @@ global d gen day=day(date)
 **********
 *CODE THAT FOLLOWS IS FROM PS3
 **********
-
+ 
 *We're combining the crimes/complaints dataset with three new datasets
 *The first new dataset will provide dates and game outcomes (win/loss) for the Philadelphia Eagles
 *This data comes from https://www.kaggle.com/maxhorowitz/nflplaybyplay2009to2016
