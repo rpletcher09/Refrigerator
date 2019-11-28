@@ -1,4 +1,3 @@
-//overall nice, just add more code--maybe more teams or more analyses or more data and merges
 /*Plot variables over time! line plots
 */
 
@@ -206,12 +205,13 @@ format date %td
 $y
 $m
 $d
-*Looking at the dataset, avgdailymaxheatindex has a fair amount of missing values. Let's fix that.
-drop date monthdayyear monthdayyearcode avgdailymaxheatindex
 rename avgdailymaxairtemperaturef hitemp
-rename avgdailyminairtemperaturef lotemp
 *lol yeehaw
 order year month day
+gen City=0
+replace City=1 if statecode==17
+drop notes monthd* state* date
+collapse hitemp, by(year month day City)
 *Slide those pesky dates around
 save weather, replace
 
@@ -302,62 +302,64 @@ drop _merge
 
 save crimeSports, replace
 
-*BREAK*
-
 *So, now that we have incorporated all the sports data, it's time for the weather.
 
-merge m:1 year month day using weather
-*We matched 113,000 observations. Seems I might have been wrong about the weather data having EVERY day. Sometimes there are days where there is no weather. Sometimes weather just doesn't happen. Scary.
-ta year month if _merge==1
+merge m:1 year month day City using weather
+
+*We matched 508,000 observations. Seems I might have been wrong about the weather data having EVERY day. Sometimes there are days where there is no weather. Sometimes weather just doesn't happen. Scary.
 ta year month if _merge==2
-//No overlap, datasets have some coverage of different years which explains the non-matched cases
-drop if _merge!=3
+*There are days in each month where no sports games occurred, hence the (relatively few) non-merges from using
 drop _merge
 *Save the final dataset!
-save crimeSportsWeatherMerge, replace
+save CSW, replace
 
 **********
 *END CODE FROM PS3
 **********
 
 **********
-*CODE THAT FOLLOWS IS FROM PS4
+*CODE THAT FOLLOWS IS MODIFIED FROM PS4
 **********
-
-drop objectid psa
 
 *What might some graphs look like? Bar of average crime count for wins and losses, correlation between baseball game attendance and number of crimes, correlation between air temperature and crime (to justify using temperature as a covariate), look for differences in types of crimes when Philly lost or won.
 *Bar average crime count
 *Need a new var to take the average of, count crimes per day
-bys year month day: egen crimeCount=count(ccrime)
-label define phiWin 0 "Loss" 1 "Win"
-label values phiWin phiWin
-save PHIsports, replace
-collapse crimeCount phiWin, by (year month day)
-label values phiWin phiWin
-graph bar (mean) crimeCount, over(phiWin)
+bys year month day City: egen crimeCount=count(crime)
+drop if missing(crime)
+*Get rid of observations with no crime data...
+*HEY WOAH WE HAVE values for win and loss that are NON INTEGERS. What gives?
+replace phiWin = round(phiWin,1)
+replace chiWin = round(chiWin,1)
+*Okay, fixed it
+*ALSO: Do we care about Chicago sports outcomes for Philadelphia crime? NO. Could we have fixed this earlier in the code? YES. Are we going to rewrite the code? AGAIN, NO.
+gen outcome=0
+replace outcome=1 if City==0 & phiWin==1
+replace outcome=1 if City==1 & chiWin==1
+label define outcome 0 "Loss" 1 "Win"
+label values outcome outcome
+drop phiWin chiWin
+
+save Sports, replace
+collapse crimeCount outcome, by (year month day City)
+label values outcome outcome
+
+graph bar (mean) crimeCount, over(outcome) over(City)
 graph save crimeBar, replace
-*Looks like there are more crimes on average on days where Philadelphia teams WON! Of course, we'll test that with a statistical test to figure out whether it's significant or not.
-ttest crimeCount, by(phiWin)
-*And it turns out that t(513) = -1.26, p > .05, so there is no significant difference in the amount of crimes reported when Philly teams won or lost.
+*Looks like crime counts are similar for Philadelphia team wins and losses, but slightly lower for Chicago team wins! Of course, we'll test that with a statistical test to figure out whether it's significant or not.
+anova crimeCount outcome City outcome#City
+*And it turns out that F(1) = 3888.40, p < .001, so there is a significant effect of city on the amount of crimes reported. This is the only significant effect; there is no main effect of game outcome, nor is there an interaction effect between city and game outcome.
+
 *Correlation between baseball attendance and number of crimes
-use PHIsports, clear
-collapse crimeCount attendance, by (year month day)
-*not all of these entries are baseball games
-drop if attendance==.
-scatter crimeCount attendance || lfit crimeCount attendance
-graph save attendCrime, replace
-*Seems to be a very slightly negative correlation between baseball game attendance and crimes per day, but we'll check that out in more detail in a bit.
-cor crimeCount attendance
-*With an r = -0.06, the correlation between crime frequency and baseball game attendance is basically negligible.
-*Correlation between air temperature and crime
-use PHIsports, clear
-collapse crimeCount hitemp, by (year month day)
+use Sports, clear
+collapse crimeCount hitemp, by (year month day City)
 scatter crimeCount hitemp || lfit crimeCount hitemp
 graph save tempCrime, replace
 *Yes, exactly! A positive correlation between crimes per day and temperature. It should be included as a covariate!
 cor crimeCount hitemp
-*With an r = 0.14, there is a weak positive correlation between crime frequency and temperature.
+*With an r = 0.16, there is a weak positive correlation between crime frequency and temperature.
+
+*BREAK*
+
 *Side by side bar charts to compare crimes when Philadelphia won or lost
 use PHIsports, clear
 tab ccrime phiWin, chi2
