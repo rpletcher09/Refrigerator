@@ -1,6 +1,3 @@
-/*Plot variables over time! line plots
-*/
-
 /* PS6 Code: Draft of final project */
 /* The purpose of this code is to merge datasets collected from the internet together to form a dataset which can be used to generate meaningful analyses and statistical visualizations.
 The reason for combining the following datasets is to identify the effect, if any, of Philadelphia sports team losses and wins on reports of crime in the City of Philadelphia. The purpose of including complaints against police and weather is to use these datasets for covariates. Additional data has been incorporated for the city of Chicago to compare the two cities and determine whether the effects (if any) on crime reports are exclusive to Philadelphia, or are common in all large cities with sports teams. */
@@ -36,12 +33,11 @@ global clean keep year month day City phiWin chiWin
 /*
 insheet using NFL.csv, clear
 
-*dropped most of the variables, as they related to individual plays and positions, rather than overall score. But totally neat for like fantasy football or something, if that's a thing you'd like to check out.
-
 drop if time!="00:00"
 drop if timesecs!="0"
 
 keep Date hometeam awayteam home_wp_pre away_wp_pre
+*dropped most of the variables, as they related to individual plays and positions, rather than overall score. But totally neat for like fantasy football or something, if that's a thing you'd like to check out.
 
 gen keep=0
 foreach t of varlist hometeam awayteam {
@@ -286,8 +282,12 @@ append using CHIcrime
 
 encode crime, g(ccrime)
 drop crime arrest latitude longitude
+
+*MAYBE A LOOP HERE?*
+
 recode ccrime (1 6 = 100 "Arson")(2/4 45 = 200 "Assault")(7=205 "Battery")(5 40 28/29 30 43 36/38 = 400 "Other")(8/10 = 500 "Burglary")(11 65/66 = 300 "Weapons violation")(12 24 46/47 50 53 58 59 = 900 "Sex crime")(13 64 = 101 "Vandalism/criminal mischief")(14 63 = 102 "Vagrancy/loitering")(15 18/20 = 103 "Deceptive practices")(16/17 40 48/49 51 = 104 "Drunk and disorderly")(21/22 = 105 "Gambling violations")(23 25/27 = 106 "Homicide")(31/32 = 108 "Liquor law violations")(33/34 54/55 60/62 = 201 "Theft")(35 39 42 = 202 "Drug violations")(41 44 = 203 "Domestic offense")(52 56/57 = 204 "Robbery"),g(crime)
 drop ccrime
+label variable crime "Type of crime"
 label define City 0 "Philadelphia" 1 "Chicago"
 label values City City
 
@@ -337,98 +337,75 @@ replace outcome=1 if City==0 & phiWin==1
 replace outcome=1 if City==1 & chiWin==1
 label define outcome 0 "Loss" 1 "Win"
 label values outcome outcome
-drop phiWin chiWin
+decode crime, gen(cr)
+drop phiWin chiWin crime
 
 save Sports, replace
 collapse crimeCount outcome, by (year month day City)
 label values outcome outcome
 
-graph bar (mean) crimeCount, over(outcome) over(City)
-graph save crimeBar, replace
+graph bar (mean) crimeCount, over(outcome) over(City) stack ytitle(Average frequency of crime) title(Frequency of crimes by city and game outcome)
+graph export "crimeBar.pdf", as(pdf) name("Graph") replace
 *Looks like crime counts are similar for Philadelphia team wins and losses, but slightly lower for Chicago team wins! Of course, we'll test that with a statistical test to figure out whether it's significant or not.
 anova crimeCount outcome City outcome#City
 *And it turns out that F(1) = 3888.40, p < .001, so there is a significant effect of city on the amount of crimes reported. This is the only significant effect; there is no main effect of game outcome, nor is there an interaction effect between city and game outcome.
 
-*Correlation between baseball attendance and number of crimes
+*Correlation between temperature and crime frequency
 use Sports, clear
 collapse crimeCount hitemp, by (year month day City)
-scatter crimeCount hitemp || lfit crimeCount hitemp
-graph save tempCrime, replace
+twoway (scatter crimeCount hitemp) (lfit crimeCount hitemp), ytitle(Frequency of crime per day) xtitle(Temperature in Fahrenheit) xlabel(#10) title(Frequency of crime by temperature) legend(order(1 "Daily average" 2 "Fitted values"))
+graph export "tempCrime.pdf", as(pdf) name("Graph") replace
 *Yes, exactly! A positive correlation between crimes per day and temperature. It should be included as a covariate!
 cor crimeCount hitemp
 *With an r = 0.16, there is a weak positive correlation between crime frequency and temperature.
 
-*BREAK*
+*Side by side bar charts to compare crimes when the home team won or lost at home
+use Sports, clear
+tab cr outcome, chi2
+*CHECK THAT OUT. Frequency of different TYPES of crime is not independent of (or in other words, is related to) sports outcomes, with a x^2(17) = 649.44, p < .001
 
-*Side by side bar charts to compare crimes when Philadelphia won or lost
-use PHIsports, clear
-tab ccrime phiWin, chi2
-*CHECK THAT OUT. Frequency of different TYPES of crime is not independent of (or in other words, is related to) Philadelphia sports outcomes, with a x^2(9) = 26.58, p = .002
-drop if phiWin==0
-hist ccrime, freq discrete xla(1/10, valuelabel noticks) barw(0.6)
-graph save win, replace
-use PHIsports, clear
-drop if phiWin==1
-hist ccrime, freq discrete xla(1/10, valuelabel noticks) barw(0.6)
+encode cr, gen(crime)
+histogram crime if outcome==0, discrete percent xtitle(Type of crime) xlabel(1(1)18, labsize(small) angle(forty_five) valuelabel) title(Home team loss)
 graph save loss, replace
-gr combine win.gph loss.gph
-graph export gameOutcomeCrimeFreq.pdf, as(pdf) name("Graph")
-*There do seem to be more crimes, especially thefts, assaults, and others, when Philadelphia teams won! Interesting to note that the number of Drunk and Disorderly offenses remains relatively the same for both wins and losses.
-*Do statistical analysis! Are there significantly more crimes on days where Philadelphia teams lost than when they won? Are the crimes significantly different?
+histogram crime if outcome==1, discrete percent yscale(alt) xtitle(Type of crime) xlabel(1(1)18, labsize(small) angle(forty_five) valuelabel) title(Home team win)
+graph save win, replace
+gr combine loss.gph win.gph, title(Distribution of crimes when home teams lost and won at home)
+graph export "gameOutcomeCrimeFreq.pdf", as(pdf) name("Graph") replace
+*The distribution of crimes remains largely the same for wins and losses, with two exceptions: when the home team wins at home, there are more instances of battery, and more instances of liqour law violations!
+
+*Let's look at this on a city level. WITH A LOOP.
+levelsof City, local(levels)
+local vlname: value label City
+foreach L of local levels {
+	local vl: label `vlname' `L'
+	display "`vl'"
+	display "`L'"
+	preserve
+	keep if City==`L'
+	histogram crime if outcome==0, discrete percent xtitle(Type of crime) xlabel(1(1)18, labsize(small) angle(forty_five) valuelabel) title(Home team loss)
+	graph save "`vl'loss", replace
+	histogram crime if outcome==1, discrete percent yscale(alt) xtitle(Type of crime) xlabel(1(1)18, labsize(small) angle(forty_five) valuelabel) title(Home team win)
+	graph save "`vl'win", replace
+	gr combine "`vl'loss.gph" "`vl'win.gph", ycommon title("`vl'" crimes)
+	graph export "`vl'OutcomeCrimeFreq.pdf", as(pdf) name("Graph") replace
+	restore
+}
+*In Philadelphia, the only notable change is a decrease in deceptive practices when the home team has won at home. For Chicago, the only notable difference is a slight decrease in burglary when the home team has won at home.
+
+*Plots over time!
+
+collapse crimeCount, by (date City)
+twoway (line crimeCount date if City==0, lcolor(orange_red) lpattern(solid)) (line crimeCount date if City==1, lcolor(navy) lpattern(dash)), ytitle(Frequency of crime per day) xtitle(Date) xlabel(#20, angle(forty_five)) legend(order(1 "Philadelphia" 2 "Chicago"))
+graph export "CrimeFreqOverTime.pdf", as(pdf) name("Graph") replace
+*It looks like there is a noticeable downward trend in crimes, let's see how strong that downward trend is?
+
+cor crimeCount date
+*With an r = -0.42, there is a moderate negative correlation between crime frequency and date. In other words, crime seems to be on the decline!
+
+*Do statistical analysis! Are there significantly more crimes on days where home teams lost at home than when they won at home? Are the crimes significantly different?
 *Let's double back and write this code IN the chunks of code where I manipulate the dataset
 
 **********
 *END CODE FROM PS4
 **********
 
-*So that's all cool and all, but I'm not sure the best/most necessary ways to incorporate loops into this data...
-*But here we go anyway
-use PHIsports, clear
-*Supposing we realized a new angle for the data, that sometimes the games Philly plays in are AWAY, we want a super nuianced portrait of the city...so let's get rid of cases where the home team wasn't Philly for football and baseball.
-drop if home!=21 & homeTeam!=23
-
-*Cool, now let's say we want to make new datasets for each opposing team.
-
-* W E  D O N ' T *
-
-/*
-drop home homeTeam
-
-codebook vis
-levelsof vis, loc(v)
-di "`v'"
-
-foreach lev in `v'{
-  preserve
-  keep if vis==`lev'
-save BBvisitor`lev',  replace
-  restore
-}
-ls BB*
-*That's cool but a little unhelpful because the labels didn't come across in the macro. What's the best way around that?
-
-*Let's do the same thing for Football. We should be able to merge the datasets together (could probably do this more comprehensively BEFORE running these loops and then just run one instead of two, but that's for next iteration)
-
-codebook awayTeam
-levelsof awayTeam, loc(a)
-di "`a'"
-
-foreach lev in `a'{
-  preserve
-  keep if awayTeam==`lev'
-save FBvisitor`lev',  replace
-  restore
-}
-ls FB*
-
-*Create a new variable 
-gen nightAssault=0
-if ccrime==1 & hour_>17 {
-replace nightAssault=1
-}
-else if ccrime==1 & hour_<18 {
-replace nightAssault=0
-}
-ta nightAssault
-*This didn't work. That's okay, kind of forced this bit of code. It doesn't need to be in here. I will replace it with something more logical in the next PS, as I intend to bring in more data so I'll have a better/more reasonable place for a branch in my code.
-*/
