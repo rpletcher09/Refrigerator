@@ -255,7 +255,7 @@ save CHIcrime, replace
 /*The following lines of code were run prior to uploading it to git, in order to make it smaller */
 /*
 insheet using crimePHI.csv, clear
-keep dispatch_date text_general_code
+keep dispatch_date text_general_code lat lng
 save crimeShort, replace
 */
 
@@ -266,25 +266,47 @@ format date %td
 $y
 $m
 $d
-drop dispatch_date
+drop dispatch_date lat lng
 order year month day
+/*
+replace lat = round(lat,.001)
+replace lng = round(lng,.001)
+*Commenting these out because this merge (coming up) isn't working out the way that I hoped it would. It's fine, it's really outside the scope. Other daily datasets would be more useful here. Oh well.
+*/
 save crimePHI, replace
+*Rounded lat and long to three decimal places (apparently accurate to 110 meters, so that's pretty detailed) in the hopes that more coordinates will merge.
 
 **********
 *END CODE FROM PS2
 **********
 
-*describe zip data*
-insheet using "XXX", clear
-keep if state==42
-keep zcta5 state county tract geoid zpop
-save ZIP, replace
-
-insheet using "XXX", clear
+/*
+*Census tract data from opendataphilly*
+insheet using "https://github.com/rpletcher09/Refrigerator/raw/master/CensusT.csv", clear
 rename geoid10 geoid
-merge 1:1 geoid using ZIP
 save census, replace
 
+insheet using "https://github.com/rpletcher09/Refrigerator/raw/master/ZIP.csv", clear
+keep if state==42
+keep zcta5 state county tract geoid zpop
+merge m:1 geoid using census
+*We only merged 583 census tract IDs, which we should expect because the census data was for Philadelphia specifically, where the zip code to census tract data was statewide.
+drop if _merge!=3
+save ZIP, replace
+*collapse (first) zcta5 zpop intptlat10 intptlon10, by (geoid)
+rename intptlat10 lat
+rename intptlon10 lng
+replace lat = round(lat,.001)
+replace lng = round(lng,.001)
+*Rounded lat and long to three decimal places (again, accurate to 110 meters).
+save zipCen, replace
+
+use crimePHI, clear
+merge m:1 lat lng using zipCen
+
+*This merge is not going to provide the level of detail that I hoped it would. Maybe in GIS software, this would be plottable or usable, but it's not for these hypotheses and this data, so...oh well.
+
+*/
 
 rename text_general_code crime
 drop if missing(crime)
