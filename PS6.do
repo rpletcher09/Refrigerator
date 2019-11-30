@@ -274,6 +274,18 @@ save crimePHI, replace
 *END CODE FROM PS2
 **********
 
+*describe zip data*
+insheet using "XXX", clear
+keep if state==42
+keep zcta5 state county tract geoid zpop
+save ZIP, replace
+
+insheet using "XXX", clear
+rename geoid10 geoid
+merge 1:1 geoid using ZIP
+save census, replace
+
+
 rename text_general_code crime
 drop if missing(crime)
 gen City = 0
@@ -283,7 +295,7 @@ append using CHIcrime
 encode crime, g(ccrime)
 drop crime arrest latitude longitude
 
-*MAYBE A LOOP HERE?*
+*PROBABLY REGEX HERE*
 
 recode ccrime (1 6 = 100 "Arson")(2/4 45 = 200 "Assault")(7=205 "Battery")(5 40 28/29 30 43 36/38 = 400 "Other")(8/10 = 500 "Burglary")(11 65/66 = 300 "Weapons violation")(12 24 46/47 50 53 58 59 = 900 "Sex crime")(13 64 = 101 "Vandalism/criminal mischief")(14 63 = 102 "Vagrancy/loitering")(15 18/20 = 103 "Deceptive practices")(16/17 40 48/49 51 = 104 "Drunk and disorderly")(21/22 = 105 "Gambling violations")(23 25/27 = 106 "Homicide")(31/32 = 108 "Liquor law violations")(33/34 54/55 60/62 = 201 "Theft")(35 39 42 = 202 "Drug violations")(41 44 = 203 "Domestic offense")(52 56/57 = 204 "Robbery"),g(crime)
 drop ccrime
@@ -408,4 +420,3 @@ cor crimeCount date
 **********
 *END CODE FROM PS4
 **********
-
