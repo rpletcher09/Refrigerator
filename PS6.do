@@ -384,6 +384,8 @@ graph export "crimeBar.pdf", as(pdf) name("Graph") replace
 anova crimeCount outcome City outcome#City
 *And it turns out that F(1) = 3888.40, p < .001, so there is a significant effect of city on the amount of crimes reported. This is the only significant effect; there is no main effect of game outcome, nor is there an interaction effect between city and game outcome.
 
+*MAKE THESE DOTS SMALLER OR HOLLOW
+
 *Correlation between temperature and crime frequency
 use Sports, clear
 collapse crimeCount hitemp, by (year month day City)
@@ -397,6 +399,8 @@ cor crimeCount hitemp
 use Sports, clear
 tab cr outcome, chi2
 *CHECK THAT OUT. Frequency of different TYPES of crime is not independent of (or in other words, is related to) sports outcomes, with a x^2(17) = 649.44, p < .001
+
+*CONSIDER CHART FOR EACH CRIME, RATHER THAN WIN/LOSS, AND THEN OUTPUT ALL THOSE; POSSIBLY OPTIMIZE*
 
 encode cr, gen(crime)
 histogram crime if outcome==0, discrete percent xtitle(Type of crime) xlabel(1(1)18, labsize(small) angle(forty_five) valuelabel) title(Home team loss)
@@ -427,6 +431,9 @@ foreach L of local levels {
 *In Philadelphia, the only notable change is a decrease in deceptive practices when the home team has won at home. For Chicago, the only notable difference is a slight decrease in burglary when the home team has won at home.
 
 *Plots over time!
+
+*MAKE THESE LINES THINNER and dates smaller and formatted!*
+*ALSO CONSIDER TRENDLINES FOR EACH CITY*
 
 collapse crimeCount, by (date City)
 twoway (line crimeCount date if City==0, lcolor(orange_red) lpattern(solid)) (line crimeCount date if City==1, lcolor(navy) lpattern(dash)), ytitle(Frequency of crime per day) xtitle(Date) xlabel(#20, angle(forty_five)) legend(order(1 "Philadelphia" 2 "Chicago"))
