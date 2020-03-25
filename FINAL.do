@@ -1,6 +1,7 @@
-/* PS6 Code: Draft of final project */
+/* FINAL Code: FINAL PROJECT */
 /* The purpose of this code is to merge datasets collected from the internet together to form a dataset which can be used to generate meaningful analyses and statistical visualizations.
-The reason for combining the following datasets is to identify the effect, if any, of Philadelphia sports team losses and wins on reports of crime in the City of Philadelphia. The purpose of including complaints against police and weather is to use these datasets for covariates. Additional data has been incorporated for the city of Chicago to compare the two cities and determine whether the effects (if any) on crime reports are exclusive to Philadelphia, or are common in all large cities with sports teams. */
+
+The reason for combining the following datasets is to identify the effect, if any, of Philadelphia sports team losses and wins on reports of crime in the City of Philadelphia. The purpose of including weather is to use this data for covariates. Additional data has been incorporated for the city of Chicago to compare the two cities and determine whether the effects (if any) on crime reports are exclusive to Philadelphia, or are common in all large cities with sports teams. Philadelphia sports fans have received the nickname "The Broad Street Bullies" in part due to their particularly aggressive nature at sporting events; it stands to reason that if this nickname is fairly given, then Philadelphia will report a greater number of crimes when their teams have lost.*/
 
 *First, the usual: code from PS1
 clear         
@@ -191,6 +192,7 @@ replace chiWin=round(chiWin, 1)
 save MASTERwins, replace
 
 //this is awesome to use these data!
+*Thanks, Adam! ^^
 *The third dataset is daily weather data for the county of Philadelphia and city of Chicago from the CDC.
 *This data comes from https://wonder.cdc.gov/nasa-nldas.html
 /*Description from website hosting the dataset: The North America Land Data Assimilation System (NLDAS) data available on CDC WONDER are county-level daily average air temperatures and heat index measures spanning the years 1979-2011. Temperature data are available in Fahrenheit or Celsius scales. Reported measures are the average temperature, number of observations and range for the daily maximum and minimum air temperatures, as well as percent coverage for the daily maximum heat index. Data are available by place (combined 48 contiguous states, region, division, state, county), time (year, month, day) and specified maximum and minimum air temperature, and heat index value. */
@@ -231,7 +233,10 @@ save CHIcrime, replace
 
 *CHIcrime.zip was then added to github using gitbash command line.
 
-unzipfile https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/CHIcrime.zip
+*FIXED TO BE STATA 15 FRIENDLY!
+
+copy "https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/CHIcrime.zip" CHIcrime.zip
+unzipfile cHIcrime.zip
 use CHIcrime, clear
 gen ndate=substr(date,1,10)
 split ndate, parse(/) gen(date1)
@@ -259,7 +264,10 @@ keep dispatch_date text_general_code lat lng
 save crimeShort, replace
 */
 
-unzipfile https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/crimeShort.zip
+*FIXED TO BE STATA 15 FRIENDLY!
+
+copy "https://raw.githubusercontent.com/rpletcher09/Refrigerator/master/crimeShort.zip" crimeShort.zip
+unzipfile crimeShort.zip
 use crimeShort, clear
 generate date = date(dispatch_date, "YMD")
 format date %td
@@ -279,7 +287,7 @@ save crimePHI, replace
 **********
 *END CODE FROM PS2
 **********
-
+/* CODE THAT FOLLOWS WAS DEPRECATED BUT RETAINED FOR FUTURE/POSSIBLE GIS IMPLEMENTATION */
 /*
 *Census tract data from opendataphilly*
 insheet using "https://github.com/rpletcher09/Refrigerator/raw/master/CensusT.csv", clear
@@ -318,8 +326,9 @@ encode crime, g(ccrime)
 drop crime arrest latitude longitude
 
 *PROBABLY REGEX HERE*
+*NEVERMIND, ADAM OK'D 12/6*
 
-recode ccrime (1 6 = 100 "Arson")(2/4 45 = 200 "Assault")(7=205 "Battery")(5 40 28/29 30 43 36/38 = 400 "Other")(8/10 = 500 "Burglary")(11 65/66 = 300 "Weapons violation")(12 24 46/47 50 53 58 59 = 900 "Sex crime")(13 64 = 101 "Vandalism/criminal mischief")(14 63 = 102 "Vagrancy/loitering")(15 18/20 = 103 "Deceptive practices")(16/17 40 48/49 51 = 104 "Drunk and disorderly")(21/22 = 105 "Gambling violations")(23 25/27 = 106 "Homicide")(31/32 = 108 "Liquor law violations")(33/34 54/55 60/62 = 201 "Theft")(35 39 42 = 202 "Drug violations")(41 44 = 203 "Domestic offense")(52 56/57 = 204 "Robbery"),g(crime)
+recode ccrime (1 6 = 100 "Arson")(2/4 45 = 200 "Assault")(7=205 "Battery")(5 40 28/29 30 43 36/38 = 400 "Other")(8/10 = 500 "Burglary")(11 65/66 = 300 "Weapons violation")(12 24 46/47 50 53 58 59 = 900 "Sex crime")(13 64 = 101 "Vandalism and criminal mischief")(14 63 = 102 "Vagrancy and loitering")(15 18/20 = 103 "Deceptive practices")(16/17 40 48/49 51 = 104 "Drunk and disorderly")(21/22 = 105 "Gambling violations")(23 25/27 = 106 "Homicide")(31/32 = 108 "Liquor law violations")(33/34 54/55 60/62 = 201 "Theft")(35 39 42 = 202 "Drug violations")(41 44 = 203 "Domestic offense")(52 56/57 = 204 "Robbery"),g(crime)
 drop ccrime
 label variable crime "Type of crime"
 label define City 0 "Philadelphia" 1 "Chicago"
@@ -384,12 +393,12 @@ graph export "crimeBar.pdf", as(pdf) name("Graph") replace
 anova crimeCount outcome City outcome#City
 *And it turns out that F(1) = 3888.40, p < .001, so there is a significant effect of city on the amount of crimes reported. This is the only significant effect; there is no main effect of game outcome, nor is there an interaction effect between city and game outcome.
 
-*MAKE THESE DOTS SMALLER OR HOLLOW
+*Made dots smaller AND hollow!
 
 *Correlation between temperature and crime frequency
 use Sports, clear
 collapse crimeCount hitemp, by (year month day City)
-twoway (scatter crimeCount hitemp) (lfit crimeCount hitemp), ytitle(Frequency of crime per day) xtitle(Temperature in Fahrenheit) xlabel(#10) title(Frequency of crime by temperature) legend(order(1 "Daily average" 2 "Fitted values"))
+twoway (scatter crimeCount hitemp msize(small) msymbol(circle_hollow)) (lfit crimeCount hitemp), ytitle(Frequency of crime per day) xtitle(Temperature in Fahrenheit) xlabel(#10) title(Frequency of crime by temperature) legend(order(1 "Daily average" 2 "Fitted values"))
 graph export "tempCrime.pdf", as(pdf) name("Graph") replace
 *Yes, exactly! A positive correlation between crimes per day and temperature. It should be included as a covariate!
 cor crimeCount hitemp
@@ -400,7 +409,7 @@ use Sports, clear
 tab cr outcome, chi2
 *CHECK THAT OUT. Frequency of different TYPES of crime is not independent of (or in other words, is related to) sports outcomes, with a x^2(17) = 649.44, p < .001
 
-*CONSIDER CHART FOR EACH CRIME, RATHER THAN WIN/LOSS, AND THEN OUTPUT ALL THOSE; POSSIBLY OPTIMIZE*
+*NEW: Charts for each crime, AND win/loss*
 
 encode cr, gen(crime)
 histogram crime if outcome==0, discrete percent xtitle(Type of crime) xlabel(1(1)18, labsize(small) angle(forty_five) valuelabel) title(Home team loss)
@@ -409,7 +418,21 @@ histogram crime if outcome==1, discrete percent yscale(alt) xtitle(Type of crime
 graph save win, replace
 gr combine loss.gph win.gph, title(Distribution of crimes when home teams lost and won at home)
 graph export "gameOutcomeCrimeFreq.pdf", as(pdf) name("Graph") replace
+
 *The distribution of crimes remains largely the same for wins and losses, with two exceptions: when the home team wins at home, there are more instances of battery, and more instances of liqour law violations!
+
+*Let's do a loop that generates a graph for each TYPE of crime and compares freqencies with wins and losses on the same graph, rather than on seperate graphs!
+
+levelsof crime, local(levels)
+local vlname: value label crime
+foreach L of local levels {
+	local vl: label `vlname' `L'
+	display "`vl'"
+	display "`L'"
+	histogram outcome if crime==`L', discrete percent gap (5) ylabel(0(10)60) xtitle(Outcome) xlabel(0(1)1, labsize(small) valuelabel) title("`vl'")
+	graph export "`vl'CrimeFreq.pdf", as(pdf) name("Graph") replace
+}
+
 
 *Let's look at this on a city level. WITH A LOOP.
 levelsof City, local(levels)
@@ -432,20 +455,29 @@ foreach L of local levels {
 
 *Plots over time!
 
-*MAKE THESE LINES THINNER and dates smaller and formatted!*
-*ALSO CONSIDER TRENDLINES FOR EACH CITY*
+*NEW: Added line and date formatting, trendlines for each city*
 
 collapse crimeCount, by (date City)
-twoway (line crimeCount date if City==0, lcolor(orange_red) lpattern(solid)) (line crimeCount date if City==1, lcolor(navy) lpattern(dash)), ytitle(Frequency of crime per day) xtitle(Date) xlabel(#20, angle(forty_five)) legend(order(1 "Philadelphia" 2 "Chicago"))
+
+tsset City date, daily
+
+twoway (tsline crimeCount if City==0, lwidth(vthin) lcolor(orange_red) lpattern(solid) tlabel(,format(%tdMonthCCYY))) (tsline crimeCount if City==1, lwidth(vthin) lcolor(navy) lpattern(dash) tlabel(,format(%tdMonthCCYY))) (lfit crimeCount date if City==0, lpattern(solid)) (lfit crimeCount date if City==1, lcolor(red) lpattern(dash)), ytitle(Frequency of crime per day) xtitle(Date) xlabel(#20, angle(forty_five) labsize(small)) title(Daily Crime Frequency) legend(order(1 "Philadelphia" 2 "Chicago" 3 "Trendline for Philadelphia" 4 "Trendline for Chicago"))
 graph export "CrimeFreqOverTime.pdf", as(pdf) name("Graph") replace
-*It looks like there is a noticeable downward trend in crimes, let's see how strong that downward trend is?
+
+*It looks like there is a noticeable downward trend in crimes, but this trend is stronger in Chicago than in Philadelphia! Let's see how strong that downward trend is.
 
 cor crimeCount date
 *With an r = -0.42, there is a moderate negative correlation between crime frequency and date. In other words, crime seems to be on the decline!
+
+cor crimeCount date if City==0
+*With an r = -0.55, there is a moderate negative correlation between crime frequency and date in Philadelphia.
+
+cor crimeCount date if City==1
+*With an r = -0.78, there is a strong negative correlation between crime frequency and date in Chicago.
 
 *Do statistical analysis! Are there significantly more crimes on days where home teams lost at home than when they won at home? Are the crimes significantly different?
 *Let's double back and write this code IN the chunks of code where I manipulate the dataset
 
 **********
-*END CODE FROM PS4
+*END CODE FROM PS5
 **********
